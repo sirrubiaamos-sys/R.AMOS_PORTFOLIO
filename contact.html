@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - R.AMOS Productions</title>
+    <link rel="stylesheet" href="contact.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <a href="index.html" class="logo">R.AMOS</a>
+        <nav class="navbar">
+            <a href="index.html">Home</a>
+            <a href="about.html">About</a>
+            <a href="services.html">Services</a>
+            <a href="portfolio.html">Portfolio</a>
+            <a href="vision.html">Vision</a>
+            <a href="contact.html" class="active">Contact</a>
+        </nav>
+    </header>
+
+    <div class="contact-container">
+        <h1>Get In Touch</h1>
+        
+        <div class="contact-grid">
+            <div class="contact-item">
+                <h3><i class="fas fa-phone"></i> Phone</h3>
+                <p><strong>WhatsApp/Mobile:</strong></p>
+                <p><a href="https://wa.me/254725327175">+254 725 327 175</a></p>
+            </div>
+            
+            <div class="contact-item">
+                <h3><i class="fas fa-envelope"></i> Send Message</h3>
+                <form class="email-form" id="emailForm">
+                    <div class="form-group">
+                        <label for="senderName">Your Name:</label>
+                        <input type="text" id="senderName" name="senderName" required placeholder="Enter your name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="senderEmail">Your Email:</label>
+                        <input type="email" id="senderEmail" name="senderEmail" required placeholder="Enter your email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="subject">Subject:</label>
+                        <input type="text" id="subject" name="subject" required placeholder="Message subject">
+                    </div>
+                    
+                    <div class="dual-message-boxes">
+                        <div class="message-box-wrapper">
+                            <label for="primaryMessage"><strong>Primary Email Message:</strong></label>
+                            <textarea id="primaryMessage" class="message-box" placeholder="Type your message here..." required></textarea>
+                            <p class="email-label">To: sirrubiaamos@gmail.com</p>
+                        </div>
+                        
+                        <div class="message-box-wrapper">
+                            <label for="businessMessage"><strong>Business Email Message:</strong></label>
+                            <textarea id="businessMessage" class="message-box" placeholder="Same message syncs here..." required></textarea>
+                            <p class="email-label">To: R.AMOS_PRODUCTIONS@proton.me</p>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Send to Both Emails</button>
+                </form>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="color: #ff6b6b; margin-bottom: 20px;">Follow Me</h2>
+            <div class="social-links">
+                <a href="https://wa.me/254725327175" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                <a href="https://facebook.com" title="Facebook"><i class="fab fa-facebook"></i></a>
+                <a href="https://github.com/sirrubiaamos-sys" title="GitHub"><i class="fab fa-github"></i></a>
+                <a href="https://linkedin.com" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                <a href="https://youtube.com" title="YouTube"><i class="fab fa-youtube"></i></a>
+                <a href="https://t.me" title="Telegram"><i class="fab fa-telegram"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #0a0e27; color: #b0b0b0; text-align: center; padding: 20px; margin-top: 60px; border-top: 1px solid #333;">
+        <p>&copy; 2024 R.AMOS Productions. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Sync message boxes
+        const primaryMessage = document.getElementById('primaryMessage');
+        const businessMessage = document.getElementById('businessMessage');
+        
+        primaryMessage.addEventListener('input', function() {
+            businessMessage.value = this.value;
+        });
+        
+        businessMessage.addEventListener('input', function() {
+            primaryMessage.value = this.value;
+        });
+        
+        // Handle form submission
+        document.getElementById('emailForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('senderName').value;
+            const email = document.getElementById('senderEmail').value;
+            const subject = document.getElementById('subject').value;
+            const message = document.getElementById('primaryMessage').value;
+            
+            // Create email body
+            const emailBody = `
+Name: ${name}
+Email: ${email}
+Subject: ${subject}
+
+Message:
+${message}
+            `;
+            
+            // Create mailto link for both emails
+            const primaryEmail = 'sirrubiaamos@gmail.com';
+            const businessEmail = 'R.AMOS_PRODUCTIONS@proton.me';
+            const encodedBody = encodeURIComponent(emailBody);
+            
+            // Send to primary email
+            const mailtoLink = `mailto:${primaryEmail}?cc=${businessEmail}&subject=${encodeURIComponent(subject)}&body=${encodedBody}`;
+            
+            // Open default email client
+            window.location.href = mailtoLink;
+            
+            // Show success message
+            alert('Opening your email client to send message to both emails. Please review and send!');
+            
+            // Reset form
+            this.reset();
+        });
+    </script>
+</body>
+</html>
