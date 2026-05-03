@@ -3,7 +3,7 @@ Allow: /
 Disallow: /assets/
 Disallow: /images/
 
-Sitemap: https://ramos-productions.com/sitemap.xml
+Sitemap: https://amos-rubia-portfolio.ercel.app/sitemap.xml
 
 # Crawl delay (in seconds)
 Crawl-delay: 1

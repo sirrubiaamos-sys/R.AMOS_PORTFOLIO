@@ -16,9 +16,6 @@ function initVideoData() {
 
 // Get current video ID
 let currentVideoId = '';
-let currentModalItems = [];
-let currentModalIndex = -1;
-const PORTFOLIO_TOUR_KEY = 'amos_portfolio_tour_seen';
 
 // Video modal functions
 function openVideoModal(videoId, title, stats) {
@@ -209,40 +206,119 @@ window.addEventListener('click', (e) => {
 // Initialize
 initVideoData();
 
-// --- Portfolio categories & document viewer ---
-function normalizePortfolioCategory(category, type) {
-    const rawCategory = (category || '').toString().toLowerCase().trim();
-    const rawType = (type || '').toString().toLowerCase().trim();
-    const value = rawCategory || rawType || 'other';
+// Admin helpers - browser-side Google Sign-In with Drive API
+let gapiInitialized = false;
+let userEmail = null;
+const ADMIN_EMAIL = 'sirrubiaamos@gmail.com';
 
-    if (value === 'all') return 'all';
-    if (value.includes('video') || value.includes('videography')) return 'videography';
-    if (value.includes('image') || value.includes('photo') || value.includes('photography')) return 'photography';
-    if (value.includes('music')) return 'music';
-    if (value.includes('audio')) return 'audio';
-    if (value.includes('document') || value.includes('pdf')) return 'document';
-    return 'other';
+async function initGapi() {
+  if (gapiInitialized) return;
+  return new Promise((resolve) => {
+    gapi.load('client:auth2', async () => {
+      try {
+        await gapi.client.init({
+          clientId: window.GOOGLE_CLIENT_ID || '',
+          scope: 'https://www.googleapis.com/auth/drive'
+        });
+        gapiInitialized = true;
+        resolve();
+      } catch (e) {
+        console.error('gapi init err', e);
+        resolve();
+      }
+    });
+  });
 }
 
+async function isAdmin() {
+  await initGapi();
+  const auth2 = gapi.auth2.getAuthInstance();
+  if (!auth2) return false;
+  const isSignedIn = auth2.isSignedIn.get();
+  if (!isSignedIn) return false;
+  const profile = auth2.currentUser.get().getBasicProfile();
+  userEmail = profile.getEmail().toLowerCase();
+  return userEmail === ADMIN_EMAIL.toLowerCase();
+}
+
+async function serverLogin(secret) {
+  // unused in browser-side mode
+  return false;
+}
+
+async function serverLogout() {
+  await initGapi();
+  const auth2 = gapi.auth2.getAuthInstance();
+  if (auth2) await auth2.signOut();
+  userEmail = null;
+}
+
+// Google Sign-In via browser
+async function adminGoogleSignIn() {
+  await initGapi();
+  const auth2 = gapi.auth2.getAuthInstance();
+  if (!auth2) {
+    alert('Google Sign-In not initialized');
+    return;
+  }
+  try {
+    await auth2.signIn();
+    const profile = auth2.currentUser.get().getBasicProfile();
+    const email = profile.getEmail().toLowerCase();
+    if (email === ADMIN_EMAIL.toLowerCase()) {
+      applyAdminUI();
+      alert('Admin logged in');
+    } else {
+      alert('Not authorized');
+      await auth2.signOut();
+    }
+  } catch (e) {
+    console.error('sign in err', e);
+    alert('Sign-in failed');
+  }
+}
+
+// Apply UI visibility for admin-only controls (checks browser auth)
+async function applyAdminUI() {
+  const admin = await isAdmin();
+  const uploadButtons = document.querySelectorAll('.upload-btn');
+  uploadButtons.forEach(btn => {
+    const txt = (btn.textContent || '').toLowerCase();
+    if (txt.includes('upload') || txt.includes('add item') || txt.includes('clear') || txt.includes('reset')) {
+      btn.style.display = admin ? '' : 'none';
+    }
+  });
+  renderPortfolioItems();
+  const userBtn = document.querySelector('.user-btn');
+  if (userBtn) userBtn.title = admin ? 'Logged in (click to logout)' : 'Click to login as admin';
+}
+
+// Wire user button to Google Sign-In/logout
+document.addEventListener('DOMContentLoaded', () => {
+  const userBtn = document.querySelector('.user-btn');
+  if (userBtn) {
+    userBtn.addEventListener('click', async () => {
+      const admin = await isAdmin();
+      if (admin) {
+        if (confirm('Logout admin?')) { await serverLogout(); applyAdminUI(); }
+        return;
+      }
+      adminGoogleSignIn();
+    });
+  }
+  applyAdminUI();
+});
+
+// --- Portfolio categories & document viewer ---
 function filterCategory(category) {
     const cards = document.querySelectorAll('.content-card');
     const buttons = document.querySelectorAll('.category-btn');
     // normalize
-    category = normalizePortfolioCategory(category);
+    category = (category || '').toString().toLowerCase();
 
     buttons.forEach(btn => btn.classList.remove('active'));
     // highlight a matching button if one exists (All, Videos, Images, Documents, Other)
-    const activeBtn = Array.from(buttons).find(b => {
-        const label = (b.textContent || '').toLowerCase();
-        if (category === 'all') return label === 'all';
-        if (category === 'videography') return label.includes('video');
-        if (category === 'photography') return label.includes('photo');
-        if (category === 'audio') return label.includes('audio');
-        if (category === 'music') return label.includes('music');
-        if (category === 'document') return label.includes('document');
-        if (category === 'other') return label.includes('other');
-        return false;
-    });
+    const activeBtn = Array.from(buttons).find(b => b.textContent.toLowerCase() === category || (category === 'all' && b.textContent.toLowerCase() === 'all') || (category === 'video' && b.textContent.toLowerCase().includes('video')));
     if (activeBtn) activeBtn.classList.add('active');
 
     // sync dropdown if present
@@ -253,7 +329,7 @@ function filterCategory(category) {
         if (opt) select.value = opt.value;
     }
     cards.forEach(card => {
-        const cat = normalizePortfolioCategory(card.getAttribute('data-category'));
+        const cat = (card.getAttribute('data-category') || 'video').toString().toLowerCase();
         if (category === 'all' || cat === category) {
             card.style.display = '';
         } else {
@@ -269,7 +345,7 @@ function updateCategoryOptions() {
     const items = getPortfolioItems();
     const existing = new Set(Array.from(select.options).map(o => o.value.toLowerCase()));
     items.forEach(it => {
-        const c = normalizePortfolioCategory(it.category, it.type);
+        const c = (it.category || it.type || 'other').toString().toLowerCase();
         if (!existing.has(c)) {
             const opt = document.createElement('option');
             opt.value = c;
@@ -278,56 +354,6 @@ function updateCategoryOptions() {
             existing.add(c);
         }
     });
-}
-
-function getDocumentKind(src, title) {
-    const target = `${src || ''} ${(title || '')}`.toLowerCase();
-    if (target.match(/\.pdf($|\?)/)) return 'pdf';
-    if (target.match(/\.(doc|docx|odt|rtf)($|\?)/)) return 'word';
-    if (target.match(/\.(xls|xlsx|csv|ods)($|\?)/)) return 'sheet';
-    if (target.match(/\.(ppt|pptx|odp)($|\?)/)) return 'slides';
-    if (target.match(/\.(txt|md|json|xml|yaml|yml|log)($|\?)/)) return 'text';
-    return 'generic';
-}
-
-function getOfficeViewerUrl(src) {
-    if (!src) return '';
-    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(src)}`;
-}
-
-function isYouTubeUrl(url) {
-    return /youtube\.com|youtu\.be/.test((url || '').toLowerCase());
-}
-
-function getSortedPortfolioItems() {
-    const categoryOrder = { videography: 1, photography: 2, audio: 3, music: 4, document: 5, other: 6 };
-    return getPortfolioItems().slice().sort((a, b) => {
-        const catA = normalizePortfolioCategory(a.category, a.type);
-        const catB = normalizePortfolioCategory(b.category, b.type);
-        if (catA !== catB) return (categoryOrder[catA] || 99) - (categoryOrder[catB] || 99);
-        return (b.timestamp || 0) - (a.timestamp || 0);
-    });
-}
-
-function openPortfolioItemByIndex(index) {
-    const items = getSortedPortfolioItems();
-    if (!items.length || index < 0 || index >= items.length) return;
-    currentModalItems = items;
-    currentModalIndex = index;
-    const item = items[index];
-    const normalizedCategory = normalizePortfolioCategory(item.category, item.type);
-    if (item.type === 'video') return openDocModal('video', item.src, item.title || 'Untitled');
-    if (item.type === 'image') return openDocModal('image', item.src, item.title || 'Untitled');
-    if (item.type === 'document') return openDocModal('document', item.src, item.title || 'Untitled');
-    if (item.type === 'audio') return openDocModal(normalizedCategory === 'music' ? 'music' : 'audio', item.src, item.title || 'Untitled');
-    return openDocModal('other', item.src, item.title || 'Untitled');
-}
-
-function navigateDocItem(step) {
-    if (!currentModalItems.length) return;
-    const next = currentModalIndex + step;
-    if (next < 0 || next >= currentModalItems.length) return;
-    openPortfolioItemByIndex(next);
 }
 
 function openDocModal(type, src, title) {
@@ -340,11 +366,8 @@ function openDocModal(type, src, title) {
         modal.innerHTML = `
             <div class="doc-content">
                 <div class="doc-header">
-                    <div class="doc-title" id="docTitle"></div>
-                    <div class="doc-header-actions">
-                        <button class="doc-close" id="docPrevBtn">Prev</button>
-                        <button class="doc-close" id="docNextBtn">Next</button>
-                        <button class="doc-close" id="docOpenNewTabBtn">Open</button>
+                    <div class="doc-title">${title}</div>
+                    <div>
                         <button class="doc-close" id="docCloseBtn">Close ✕</button>
                     </div>
                 </div>
@@ -355,59 +378,32 @@ function openDocModal(type, src, title) {
 
         // close handler
         modal.querySelector('#docCloseBtn').addEventListener('click', closeDocModal);
-        modal.querySelector('#docPrevBtn').addEventListener('click', () => navigateDocItem(-1));
-        modal.querySelector('#docNextBtn').addEventListener('click', () => navigateDocItem(1));
         modal.addEventListener('click', function(e) {
             if (e.target === modal) closeDocModal();
         });
     }
 
     const body = modal.querySelector('#docBody');
-    const titleEl = modal.querySelector('#docTitle');
-    const openNewTabBtn = modal.querySelector('#docOpenNewTabBtn');
-    titleEl.textContent = title || 'Preview';
-    openNewTabBtn.onclick = () => window.open(src, '_blank', 'noopener,noreferrer');
     body.innerHTML = '';
 
-    const prevBtn = modal.querySelector('#docPrevBtn');
-    const nextBtn = modal.querySelector('#docNextBtn');
-    prevBtn.disabled = currentModalIndex <= 0;
-    nextBtn.disabled = currentModalIndex < 0 || currentModalIndex >= currentModalItems.length - 1;
-
-    if (type === 'video') {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'doc-media-wrapper';
-
-        if (isYouTubeUrl(src)) {
-            const id = extractYouTubeId(src);
-            const frame = document.createElement('iframe');
-            frame.src = id ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0` : src;
-            frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-            frame.allowFullscreen = true;
-            wrapper.appendChild(frame);
-        } else {
-            const video = document.createElement('video');
-            video.src = src;
-            video.controls = true;
-            video.autoplay = true;
-            video.playsInline = true;
-            wrapper.appendChild(video);
-        }
-        body.appendChild(wrapper);
-    } else if (type === 'pdf' || type === 'document') {
+    if (type === 'pdf') {
         // If PDF.js is available, render using canvas and provide simple controls
-        const kind = getDocumentKind(src, title);
-        if (kind === 'pdf' && window.pdfjsLib) {
+        if (window.pdfjsLib) {
             const controls = document.createElement('div');
-            controls.className = 'doc-toolbar';
+            controls.style.display = 'flex';
+            controls.style.gap = '10px';
+            controls.style.padding = '10px';
+            controls.style.background = 'rgba(0,0,0,0.25)';
+            controls.style.alignItems = 'center';
             controls.innerHTML = `
-                <button id="pdfPrev" class="doc-tool-btn">◀ Prev</button>
-                <span id="pdfPageInfo" class="doc-page-info">Page 1 / ?</span>
-                <button id="pdfNext" class="doc-tool-btn">Next ▶</button>
+                <button id="pdfPrev" style="padding:6px 10px">◀ Prev</button>
+                <span id="pdfPageInfo" style="color:#e0e0e0">Page 1 / ?</span>
+                <button id="pdfNext" style="padding:6px 10px">Next ▶</button>
             `;
 
             const canvas = document.createElement('canvas');
-            canvas.className = 'doc-canvas';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
             body.appendChild(controls);
             body.appendChild(canvas);
 
@@ -451,11 +447,6 @@ function openDocModal(type, src, title) {
                 renderPage(currentPage);
             });
 
-        } else if (kind === 'word' || kind === 'sheet' || kind === 'slides') {
-            const iframe = document.createElement('iframe');
-            iframe.src = getOfficeViewerUrl(src);
-            iframe.allow = 'fullscreen';
-            body.appendChild(iframe);
         } else {
             const iframe = document.createElement('iframe');
             iframe.src = src;
@@ -463,87 +454,43 @@ function openDocModal(type, src, title) {
             body.appendChild(iframe);
         }
     } else if (type === 'image') {
-        const wrap = document.createElement('div');
-        wrap.className = 'doc-image-wrap';
-        const controls = document.createElement('div');
-        controls.className = 'doc-toolbar';
-        controls.innerHTML = `
-            <button class="doc-tool-btn" id="imgZoomOut">-</button>
-            <span class="doc-page-info">Image Viewer</span>
-            <button class="doc-tool-btn" id="imgZoomIn">+</button>
-        `;
         const img = document.createElement('img');
-        img.className = 'doc-image-view';
         img.src = src;
         img.alt = title || '';
-        let scale = 1;
-        controls.querySelector('#imgZoomIn').addEventListener('click', () => {
-            scale = Math.min(3, scale + 0.2);
-            img.style.transform = `scale(${scale})`;
-        });
-        controls.querySelector('#imgZoomOut').addEventListener('click', () => {
-            scale = Math.max(0.5, scale - 0.2);
-            img.style.transform = `scale(${scale})`;
-        });
-        wrap.appendChild(img);
-        body.appendChild(controls);
-        body.appendChild(wrap);
-    } else if (type === 'audio' || type === 'music') {
-        const wrap = document.createElement('div');
-        wrap.className = 'doc-audio-player';
-        const icon = document.createElement('div');
-        icon.className = 'doc-audio-icon';
-        icon.innerHTML = '<i class="fas fa-music"></i>';
-        const name = document.createElement('h3');
-        name.textContent = title || 'Audio Track';
+        body.appendChild(img);
+    } else if (type === 'audio') {
         const audio = document.createElement('audio');
         audio.controls = true;
         audio.src = src;
-        audio.autoplay = true;
         audio.style.width = '100%';
-        const wave = document.createElement('div');
-        wave.className = 'audio-wave';
-        wave.innerHTML = '<span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>';
-        wave.style.animationPlayState = 'running';
-        audio.addEventListener('pause', () => wave.classList.add('paused'));
-        audio.addEventListener('play', () => wave.classList.remove('paused'));
-
-        wrap.appendChild(icon);
-        wrap.appendChild(name);
-        wrap.appendChild(wave);
-        wrap.appendChild(audio);
-        body.appendChild(wrap);
+        body.appendChild(audio);
+    } else if (type === 'video') {
+        const video = document.createElement('video');
+        video.controls = true;
+        video.src = src;
+        video.style.width = '100%';
+        video.style.maxHeight = '70vh';
+        video.autoplay = true;
+        body.appendChild(video);
     } else {
-        const kind = getDocumentKind(src, title);
-        if (kind === 'word' || kind === 'sheet' || kind === 'slides') {
-            const iframe = document.createElement('iframe');
-            iframe.src = getOfficeViewerUrl(src);
-            iframe.allow = 'fullscreen';
-            body.appendChild(iframe);
-        } else if (kind === 'text') {
-            fetch(src).then(resp => {
-                if (resp.ok) return resp.text();
-                throw new Error('cannot fetch');
-            }).then(text => {
-                const pre = document.createElement('pre');
-                pre.className = 'doc-text-preview';
-                pre.textContent = text;
-                body.appendChild(pre);
-            }).catch(() => {
-                const div = document.createElement('div');
-                div.className = 'doc-fallback';
-                div.innerHTML = `Unable to preview this text file here. <a href="${src}" target="_blank" style="color:#ff6b6b">Open in new tab</a>`;
-                body.appendChild(div);
-            });
-        } else {
-            const frame = document.createElement('iframe');
-            frame.src = src;
-            frame.allow = 'fullscreen';
-            frame.onerror = () => {
-                body.innerHTML = `<div class="doc-fallback">Preview is not available for this file format in browser. <a href="${src}" target="_blank" style="color:#ff6b6b">Open/Download file</a></div>`;
-            };
-            body.appendChild(frame);
-        }
+        // attempt to fetch and show text, otherwise link
+        fetch(src).then(resp => {
+            if (resp.ok) return resp.text();
+            throw new Error('cannot fetch');
+        }).then(text => {
+            const pre = document.createElement('pre');
+            pre.style.padding = '20px';
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.color = '#e0e0e0';
+            pre.textContent = text;
+            body.appendChild(pre);
+        }).catch(() => {
+            const div = document.createElement('div');
+            div.style.padding = '20px';
+            div.style.color = '#e0e0e0';
+            div.innerHTML = `Cannot preview this file. <a href="${src}" target="_blank" style="color:#ff6b6b">Open in new tab</a>`;
+            body.appendChild(div);
+        });
     }
 
     modal.style.display = 'flex';
@@ -558,61 +505,7 @@ function closeDocModal() {
         if (body) body.innerHTML = '';
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
-        currentModalItems = [];
-        currentModalIndex = -1;
     }
-}
-
-function startPortfolioTour() {
-    if (localStorage.getItem(PORTFOLIO_TOUR_KEY) === '1') return;
-    const steps = [
-        { selector: '.nav-left .menu-btn', title: 'Menu', text: 'Use this button to open the sidebar navigation.' },
-        { selector: '.nav-right .upload-btn:nth-child(2)', title: 'Add Portfolio Item', text: 'Upload videos, images, docs, and music from here.' },
-        { selector: '.category-bar', title: 'Categories', text: 'Filter portfolio by videography, photography, audio, music, documents, and more.' },
-        { selector: '#dynamicGrid', title: 'Portfolio Grid', text: 'Click any card to open the professional media viewer with keyboard shortcuts.' }
-    ];
-    let step = 0;
-    const overlay = document.createElement('div');
-    overlay.className = 'tour-overlay';
-    const card = document.createElement('div');
-    card.className = 'tour-card';
-    overlay.appendChild(card);
-    document.body.appendChild(overlay);
-
-    const showStep = () => {
-        const s = steps[step];
-        const el = document.querySelector(s.selector);
-        if (!el) {
-            step += 1;
-            if (step >= steps.length) return finish();
-            return showStep();
-        }
-        document.querySelectorAll('.tour-highlight').forEach(n => n.classList.remove('tour-highlight'));
-        el.classList.add('tour-highlight');
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.innerHTML = `
-            <h3>${s.title}</h3>
-            <p>${s.text}</p>
-            <div class="tour-actions">
-                <button id="tourSkipBtn">Skip</button>
-                <button id="tourNextBtn">${step === steps.length - 1 ? 'Finish' : 'Next'}</button>
-            </div>
-        `;
-        card.querySelector('#tourSkipBtn').addEventListener('click', finish);
-        card.querySelector('#tourNextBtn').addEventListener('click', () => {
-            step += 1;
-            if (step >= steps.length) return finish();
-            showStep();
-        });
-    };
-
-    const finish = () => {
-        localStorage.setItem(PORTFOLIO_TOUR_KEY, '1');
-        document.querySelectorAll('.tour-highlight').forEach(n => n.classList.remove('tour-highlight'));
-        overlay.remove();
-    };
-
-    showStep();
 }
 
 // Initialize category to show all
@@ -629,7 +522,6 @@ window.addEventListener('DOMContentLoaded', () => {
     if (cat) {
         filterCategory(cat);
     }
-    setTimeout(startPortfolioTour, 600);
 });
 
 // Portfolio storage (localStorage)
@@ -668,13 +560,13 @@ function savePortfolioItems(items) {
 function renderPortfolioItems() {
     const container = document.getElementById('dynamicGrid');
     if (!container) return;
-    const items = getSortedPortfolioItems();
+    const items = getPortfolioItems();
     container.innerHTML = '';
 
-    items.forEach((item, index) => {
+    items.forEach(item => {
         const card = document.createElement('div');
         card.className = 'content-card';
-        const dataCat = normalizePortfolioCategory(item.category, item.type);
+        const dataCat = (item.category || item.type || 'other').toString().toLowerCase();
         card.setAttribute('data-category', dataCat);
         card.setAttribute('data-title', (item.title || '').toLowerCase());
         // create thumbnail and info
@@ -682,42 +574,44 @@ function renderPortfolioItems() {
         thumb.className = 'thumbnail';
 
         if (item.type === 'video') {
-            if (isYouTubeUrl(item.src)) {
-                thumb.innerHTML = `<iframe src="${item.src}" frameborder="0" allowfullscreen></iframe>`;
+            // If this is a YouTube/embed URL, show an iframe and open the video modal by id.
+            const ytId = extractYouTubeId(item.src);
+            if (ytId) {
+                thumb.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?controls=0" frameborder="0" allowfullscreen></iframe>`;
+                card.addEventListener('click', () => openVideoModal(ytId, item.title || '', ''));
             } else {
-                thumb.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#e0e0e0;font-size:36px;"><i class="fas fa-play-circle"></i></div>';
+                // For uploaded/local or hosted video files, show a muted video preview and open a video viewer modal.
+                const videoEl = document.createElement('video');
+                videoEl.src = item.src;
+                videoEl.preload = 'metadata';
+                videoEl.muted = true;
+                videoEl.playsInline = true;
+                videoEl.style.width = '100%';
+                videoEl.style.height = '100%';
+                videoEl.style.objectFit = 'cover';
+                thumb.appendChild(videoEl);
+                card.addEventListener('click', () => openDocModal('video', item.src, item.title || ''));
             }
-            card.addEventListener('click', () => openPortfolioItemByIndex(index));
         } else if (item.type === 'image') {
             const img = document.createElement('img'); img.src = item.src; img.alt = item.title || '';
             thumb.appendChild(img);
-            card.addEventListener('click', () => openPortfolioItemByIndex(index));
+            card.addEventListener('click', () => openDocModal('image', item.src, item.title || ''));
         } else if (item.type === 'document') {
             const img = document.createElement('img'); img.src = 'https://i.pinimg.com/originals/1a/1a/1a/1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a.jpg'; img.alt = 'doc';
             thumb.appendChild(img);
-            card.addEventListener('click', () => openPortfolioItemByIndex(index));
+            card.addEventListener('click', () => openDocModal('pdf', item.src, item.title || ''));
         } else if (item.type === 'audio') {
             // show a simple audio icon in thumbnail
             thumb.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#e0e0e0;font-size:36px;"><i class="fas fa-music"></i></div>';
-            card.addEventListener('click', () => openPortfolioItemByIndex(index));
+            card.addEventListener('click', () => openDocModal('audio', item.src, item.title || ''));
         } else {
             const img = document.createElement('img'); img.src = 'https://i.pinimg.com/originals/3c/3c/3c/3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c.jpg'; img.alt = 'file';
             thumb.appendChild(img);
-            card.addEventListener('click', () => openPortfolioItemByIndex(index));
+            card.addEventListener('click', () => openDocModal('other', item.src, item.title || ''));
         }
 
         const info = document.createElement('div'); info.className = 'card-info';
-        const displayCat = dataCat === 'videography'
-            ? 'Videography'
-            : dataCat === 'photography'
-                ? 'Photography'
-                : dataCat === 'audio'
-                    ? 'Audio Engineering'
-                    : dataCat === 'music'
-                        ? 'Music'
-                    : dataCat === 'document'
-                        ? 'Document'
-                        : 'Other';
+        const displayCat = dataCat === 'videography' ? 'Videography' : dataCat === 'photography' ? 'Photography' : dataCat === 'audio' ? 'Audio Engineering' : (dataCat || '').charAt(0).toUpperCase() + (dataCat || '').slice(1);
         // icon for type
         const typeIcon = item.type === 'image' ? 'fa-file-image' : item.type === 'video' ? 'fa-video' : item.type === 'document' ? 'fa-file-pdf' : item.type === 'audio' ? 'fa-music' : (item.type === 'rar' || item.type === 'zip') ? 'fa-file-archive' : 'fa-file';
         const sizeText = item.size ? ` • ${humanFileSize(item.size)}` : '';
@@ -740,37 +634,39 @@ function renderPortfolioItems() {
             a.remove();
         });
 
-        // action menu (delete, edit, copy)
-        const actions = document.createElement('div');
-        actions.className = 'card-actions';
-        
-        const editBtn = document.createElement('button');
-        editBtn.className = 'card-action-btn';
-        editBtn.style.background = '#2a6fb5';
-        editBtn.style.color = 'white';
-        editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
-        editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            editPortfolioItem(item.id);
-        });
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'card-action-btn';
-        deleteBtn.style.background = '#c73e1d';
-        deleteBtn.style.color = 'white';
-        deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deletePortfolioItem(item.id);
-        });
-
-        actions.appendChild(editBtn);
-        actions.appendChild(deleteBtn);
-
+        // action menu (delete, edit) - only visible to admin
         card.appendChild(thumb);
         card.appendChild(info);
         card.appendChild(dl);
-        card.appendChild(actions);
+
+        if (isAdmin()) {
+            const actions = document.createElement('div');
+            actions.className = 'card-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'card-action-btn';
+            editBtn.style.background = '#2a6fb5';
+            editBtn.style.color = 'white';
+            editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editPortfolioItem(item.id);
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'card-action-btn';
+            deleteBtn.style.background = '#c73e1d';
+            deleteBtn.style.color = 'white';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deletePortfolioItem(item.id);
+            });
+
+            actions.appendChild(editBtn);
+            actions.appendChild(deleteBtn);
+            card.appendChild(actions);
+        }
         container.appendChild(card);
     });
 
@@ -824,6 +720,10 @@ function setupPortfolioUploadHandlers() {
 }
 
 async function handlePortfolioUpload() {
+    if (!(await isAdmin())) {
+        alert('Only the site admin can add portfolio items. Please login as admin to proceed.');
+        return;
+    }
     const fileInput = document.getElementById('portfolioFileInput');
     const urlInput = document.getElementById('portfolioUrlInput');
     const titleInput = document.getElementById('portfolioTitleInput');
@@ -834,26 +734,50 @@ async function handlePortfolioUpload() {
     const items = getPortfolioItems();
 
     // Priority: file input > url
+    let fileSize;
     if (fileInput.files && fileInput.files[0]) {
         const file = fileInput.files[0];
-        // create object URL for local preview/download
-        src = URL.createObjectURL(file);
-        const fileSize = file.size || 0;
+        fileSize = file.size || 0;
         // derive type by mime
-        if (file.type.startsWith('image/')) type = 'image';
-        else if (
-            file.type === 'application/pdf' ||
-            file.name.match(/\.(doc|docx|odt|rtf|xls|xlsx|csv|ods|ppt|pptx|odp|txt|md|json|xml|yaml|yml|log)$/i)
-        ) type = 'document';
-        else if (file.type.startsWith('video/')) type = 'video';
-        else if (file.type.startsWith('audio/')) type = 'audio';
+        if (file.type && file.type.startsWith('image/')) type = 'image';
+        else if (file.type === 'application/pdf') type = 'document';
+        else if (file.type && file.type.startsWith('video/')) type = 'video';
+        else if (file.type && file.type.startsWith('audio/')) type = 'audio';
         else if (file.name.match(/\.(rar|zip|7z)$/i)) type = file.name.match(/\.(rar)$/i) ? 'rar' : 'zip';
         else if (file.name.match(/\.(exe|msi|deb|rpm)$/i)) type = 'software';
         else type = 'other';
+
+        // Upload directly to Google Drive via gapi.client.drive
+        try {
+            await initGapi();
+            const fileMetadata = { name: file.name };
+            const media = { mimeType: file.type || 'application/octet-stream', body: file };
+            const response = await gapi.client.drive.files.create({
+                resource: fileMetadata,
+                media: media,
+                fields: 'id, webViewLink'
+            });
+            const fileId = response.result.id;
+            // make file publicly readable
+            await gapi.client.drive.permissions.create({
+                fileId: fileId,
+                requestBody: { role: 'reader', type: 'anyone' }
+            });
+            const meta = await gapi.client.drive.files.get({ fileId: fileId, fields: 'webViewLink' });
+            src = meta.result.webViewLink || '';
+            if (!src) {
+                alert('Upload succeeded but could not get public link');
+                return;
+            }
+        } catch (err) {
+            console.error('Drive upload err', err);
+            alert('Drive upload failed: ' + String(err));
+            return;
+        }
     } else if (urlInput.value.trim()) {
         src = normalizeCloudLink(urlInput.value.trim());
         // guess type by extension
-        if (src.match(/\.(pdf|doc|docx|odt|rtf|xls|xlsx|csv|ods|ppt|pptx|odp|txt|md|json|xml|yaml|yml|log)($|\?)/i)) type = 'document';
+        if (src.match(/\.pdf($|\?)/i)) type = 'document';
         else if (src.match(/\.(jpg|jpeg|png|gif)($|\?)/i)) type = 'image';
         else if (src.match(/youtube\.com|youtu\.be/)) type = 'video';
         else if (src.match(/\.(mp3|wav|ogg)($|\?)/i)) type = 'audio';
@@ -867,9 +791,9 @@ async function handlePortfolioUpload() {
     const title = titleInput.value.trim() || (fileInput.files && fileInput.files[0] ? fileInput.files[0].name : 'Untitled');
 
     // validate category matches type (prevent photo in videography, etc)
-    const normalizedCategory = normalizePortfolioCategory(category, type);
+    const normalizedCategory = (category || '').toString().toLowerCase();
     // mapping rules: videography -> video, photography -> image, audio -> audio
-    const categoryToType = { 'videography': 'video', 'photography': 'image', 'audio': 'audio', 'music': 'audio', 'document': 'document', 'other': null };
+    const categoryToType = { 'videography': 'video', 'music': 'video', 'photography': 'image', 'audio': 'audio', 'document': 'document' };
     const expectedType = categoryToType[normalizedCategory] || null;
     if (expectedType && expectedType !== type) {
         alert(`Category "${category}" expects ${expectedType} files. Please select a matching file or change the category.`);
@@ -877,7 +801,7 @@ async function handlePortfolioUpload() {
     }
 
     // limit to 5 items: remove oldest if necessary
-    while (items.length >= 12) items.shift();
+    while (items.length >= 5) items.shift();
 
     const newItem = { id: genId(), type, src, title, category: normalizedCategory || 'other', timestamp: Date.now() };
     if (typeof fileSize !== 'undefined') newItem.size = fileSize;
@@ -947,9 +871,9 @@ function filterBySearch() {
     cards.forEach(card => {
         const title = (card.getAttribute('data-title') || '').toLowerCase();
         const matches = title.includes(searchTerm);
-        const cat = normalizePortfolioCategory(card.getAttribute('data-category'));
+        const cat = (card.getAttribute('data-category') || '').toLowerCase();
         const activeBtn = document.querySelector('.category-btn.active');
-        const selectedCat = activeBtn ? normalizePortfolioCategory(activeBtn.textContent) : 'all';
+        const selectedCat = activeBtn ? activeBtn.textContent.toLowerCase() : 'all';
         const catMatches = selectedCat === 'all' || cat === selectedCat;
         
         if (matches && catMatches) {
@@ -1004,26 +928,3 @@ function editPortfolioItem(itemId) {
         renderPortfolioItems();
     }
 }
-
-document.addEventListener('keydown', (e) => {
-    const modal = document.getElementById('docModal');
-    if (!modal || modal.style.display !== 'flex') return;
-
-    if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        navigateDocItem(1);
-    } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        navigateDocItem(-1);
-    } else if (e.key === 'Escape') {
-        e.preventDefault();
-        closeDocModal();
-    } else if (e.key === ' ') {
-        const media = modal.querySelector('video, audio');
-        if (media) {
-            e.preventDefault();
-            if (media.paused) media.play();
-            else media.pause();
-        }
-    }
-});

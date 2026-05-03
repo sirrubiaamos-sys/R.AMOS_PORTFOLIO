@@ -12,7 +12,6 @@
     <meta property="og:description" content="Explore our creative portfolio of videography, photography, and audio engineering projects.">
     <meta property="og:type" content="website">
     <title>Portfolio - R.AMOS Productions | Videography & Photography</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="portfolio.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -99,7 +98,6 @@
                 <button class="category-btn" onclick="filterCategory('videography')">Videography</button>
                 <button class="category-btn" onclick="filterCategory('photography')">Photography</button>
                 <button class="category-btn" onclick="filterCategory('audio')">Audio Engineering</button>
-                <button class="category-btn" onclick="filterCategory('music')">Music</button>
                 <button class="category-btn" onclick="filterCategory('document')">Documents</button>
                 <button class="category-btn" onclick="filterCategory('other')">Other</button>
             </div>
@@ -124,7 +122,100 @@
             </div>
         </div>
 
-        <!-- Cards are rendered dynamically from script.js for consistent sorting and categories -->
+        <!-- Content Grid -->
+        <section class="content-grid">
+            <!-- Video Card 1 -->
+            <div class="content-card" data-category="video" onclick="openVideoModal('dQw4w9WgXcQ', 'Amazing Project Showcase', '1.2M views • 2 weeks ago')">
+                <div class="thumbnail">
+                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/dQw4w9WgXcQ?controls=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <span class="duration">3:32</span>
+                </div>
+                <div class="card-info">
+                    <h3>Amazing Project Showcase</h3>
+                    <p class="channel">R.AMOS Productions</p>
+                    <p class="stats">1.2M views • 2 weeks ago</p>
+                </div>
+            </div>
+
+            <!-- Video Card 2 -->
+            <div class="content-card" data-category="video" onclick="openVideoModal('jNQXAC9IVRw', 'Creative Content Creation', '856K views • 1 month ago')">
+                <div class="thumbnail">
+                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/jNQXAC9IVRw?controls=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <span class="duration">18:20</span>
+                </div>
+                <div class="card-info">
+                    <h3>Creative Content Creation</h3>
+                    <p class="channel">R.AMOS Productions</p>
+                    <p class="stats">856K views • 1 month ago</p>
+                </div>
+            </div>
+
+            <!-- Video Card 3 -->
+            <div class="content-card" data-category="video" onclick="openVideoModal('9bZkp7q19f0', 'Professional Portfolio Tips', '542K views • 3 weeks ago')">
+                <div class="thumbnail">
+                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/9bZkp7q19f0?controls=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <span class="duration">9:45</span>
+                </div>
+                <div class="card-info">
+                    <h3>Professional Portfolio Tips</h3>
+                    <p class="channel">R.AMOS Productions</p>
+                    <p class="stats">542K views • 3 weeks ago</p>
+                </div>
+            </div>
+
+            <!-- Video Card 4 -->
+            <div class="content-card" data-category="video" onclick="openVideoModal('ZonvMhT5c6Q', 'Behind the Scenes', '423K views • 1 month ago')">
+                <div class="thumbnail">
+                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/ZonvMhT5c6Q?controls=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <span class="duration">12:50</span>
+                </div>
+                <div class="card-info">
+                    <h3>Behind the Scenes</h3>
+                    <p class="channel">R.AMOS Productions</p>
+                    <p class="stats">423K views • 1 month ago</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Additional sample items: Images, Documents, Other -->
+        <section class="content-grid">
+            <!-- Image Card -->
+            <div class="content-card" data-category="image" onclick="openDocModal('image', 'https://i.pinimg.com/originals/2d/2d/2d/2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d.jpg', 'Workout Photo')">
+                <div class="thumbnail">
+                    <img src="https://i.pinimg.com/originals/2d/2d/2d/2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d.jpg" alt="Workout Photo">
+                </div>
+                <div class="card-info">
+                    <h3>Workout Photo</h3>
+                    <p class="channel">R.AMOS Productions</p>
+                    <p class="stats">Image • 2024</p>
+                </div>
+            </div>
+
+            <!-- Document Card (PDF) -->
+            <div class="content-card" data-category="document" onclick="openDocModal('pdf', 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', 'Sample PDF Document')">
+                <div class="thumbnail">
+                    <img src="https://i.pinimg.com/originals/1a/1a/1a/1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a.jpg" alt="PDF thumbnail">
+                    <span class="duration">PDF</span>
+                </div>
+                <div class="card-info">
+                    <h3>Sample PDF Document</h3>
+                    <p class="channel">R.AMOS Productions</p>
+                    <p class="stats">Document • PDF</p>
+                </div>
+            </div>
+
+            <!-- Other Card (download / embed fallback) -->
+            <div class="content-card" data-category="other" onclick="openDocModal('other', 'assets/sample.txt', 'Text File (Other)')">
+                <div class="thumbnail">
+                    <img src="https://i.pinimg.com/originals/3c/3c/3c/3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c.jpg" alt="Other thumbnail">
+                </div>
+                <div class="card-info">
+                    <h3>Project Notes (Text)</h3>
+                    <p class="channel">R.AMOS Productions</p>
+                    <p class="stats">Other • TXT</p>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Video Player Modal -->
@@ -295,7 +386,6 @@
                         <option value="videography">Videography</option>
                         <option value="photography">Photography</option>
                         <option value="audio">Audio Engineering</option>
-                        <option value="music">Music</option>
                         <option value="document">Document</option>
                         <option value="presentations">Presentations</option>
                         <option value="design">Design</option>
@@ -429,8 +519,15 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- Google APIs -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="script.js"></script>
     <script>
+        // Set your Google OAuth Web Application Client ID here
+        window.GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Replace with your actual client ID
+        
         // Support Modal Functions
         function openSupportModal() {
             document.getElementById('supportModal').style.display = 'flex';
