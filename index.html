@@ -3,9 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R.AMOS - Portfolio</title>
+    <meta name="description" content="R.AMOS Productions - Professional videography, photography, audio engineering, and electrical solutions. Explore our creative portfolio and services.">
+    <meta name="keywords" content="videography, photography, audio engineering, video production, creative services, R.AMOS Productions">
+    <meta name="author" content="R.AMOS Productions">
+    <meta name="theme-color" content="#ff6b6b">
+    <meta property="og:title" content="R.AMOS Productions - Creative Services">
+    <meta property="og:description" content="Professional videography, photography, audio engineering & more. Explore our creative portfolio.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ramos-productions.com">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="R.AMOS Productions">
+    <meta name="twitter:description" content="Creative videography & photography services">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="canonical" content="https://ramos-productions.com">
+    <title>R.AMOS Productions - Videography, Photography & Creative Services</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "R.AMOS Productions",
+        "url": "https://ramos-productions.com",
+        "logo": "https://ramos-productions.com/logo.png",
+        "description": "Professional creative services including videography, photography, audio engineering",
+        "sameAs": [
+            "https://facebook.com/ramos-productions",
+            "https://youtube.com/@ramosproductions",
+            "https://instagram.com/ramos-productions"
+        ],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "Customer Service",
+            "telephone": "+254-725-327-175",
+            "email": "sirrubiaamos@gmail.com"
+        }
+    }
+    </script>
 </head>
 <body>
     <header class="header">
@@ -16,12 +53,16 @@
             <a href="index.html" class="active">Home</a>
             <a href="about.html">About</a>
             <a href="services.html">Services</a>
-            <a href="#" class="portfolio-link">Portfolio <i class="fas fa-chevron-down"></i></a>
-            <div class="dropdown-menu">
-                <a href="portfolio.html?category=videography">Videography</a>
-                <a href="portfolio.html?category=photography">Photography</a>
-                <a href="portfolio.html?category=audio">Audio Engineering</a>
-                <a href="portfolio.html?category=electrical">Electrical Projects</a>
+            <div class="portfolio-dropdown">
+                <a href="#" class="portfolio-link">Portfolio <i class="fas fa-chevron-down"></i></a>
+                <div class="dropdown-menu">
+                    <a href="portfolio.html?category=videography">Videography</a>
+                    <a href="portfolio.html?category=photography">Photography</a>
+                    <a href="portfolio.html?category=audio">Audio Engineering</a>
+                    <a href="portfolio.html?category=document">Documents</a>
+                    <a href="portfolio.html?category=software">Software</a>
+                    <a href="portfolio.html?category=other">Other</a>
+                </div>
             </div>
             <a href="vision.html">Vision</a>
             <a href="contact.html">Contact</a>
@@ -29,6 +70,9 @@
     </header>
     
     <div class="hero">
+        <video class="hero-bg-video" autoplay muted loop playsinline>
+            <source src="https://cdn.pixabay.com/video/2021/08/30/86767-596285395_large.mp4" type="video/mp4">
+        </video>
         <div class="hero-content">
             <h1><span class="r-letter">R</span>.AMOS</h1>
             <p>Videography | Photography | Audio Engineering | Electrical Skills</p>
@@ -287,7 +331,7 @@
             background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
             color: #e0e0e0;
             padding: 60px 0 20px 0;
-            margin-top: 100px;
+            margin-top: 0;
             border-top: 2px solid #ff6b6b;
         }
         
@@ -555,6 +599,67 @@
             if (e.key === 'Escape') {
                 closePortfolioModal();
             }
+        });
+
+        // Homepage onboarding tour for first-time visitors
+        const HOME_TOUR_KEY = 'amos_home_tour_seen';
+        function startHomeTour() {
+            if (localStorage.getItem(HOME_TOUR_KEY) === '1') return;
+            const steps = [
+                { selector: '.logo-link', title: 'Brand Home', text: 'Click the R.AMOS logo anytime to return to the homepage.' },
+                { selector: '.navbar', title: 'Main Navigation', text: 'Use this menu to move between About, Services, Portfolio, Vision, and Contact pages.' },
+                { selector: '.portfolio-link', title: 'Portfolio Categories', text: 'Open this dropdown to jump directly to a specific portfolio category.' },
+                { selector: '.explore-btn', title: 'Explore My Work', text: 'Use this call-to-action button to open featured portfolio categories quickly.' },
+                { selector: '.skills-section', title: 'Skills Overview', text: 'This section highlights your core professional capabilities for visitors.' }
+            ];
+            let step = 0;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'tour-overlay';
+            const card = document.createElement('div');
+            card.className = 'tour-card';
+            overlay.appendChild(card);
+            document.body.appendChild(overlay);
+
+            const finishTour = () => {
+                localStorage.setItem(HOME_TOUR_KEY, '1');
+                document.querySelectorAll('.tour-highlight').forEach(n => n.classList.remove('tour-highlight'));
+                overlay.remove();
+            };
+
+            const showStep = () => {
+                if (step >= steps.length) return finishTour();
+                const current = steps[step];
+                const target = document.querySelector(current.selector);
+                if (!target) {
+                    step += 1;
+                    return showStep();
+                }
+                document.querySelectorAll('.tour-highlight').forEach(n => n.classList.remove('tour-highlight'));
+                target.classList.add('tour-highlight');
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                card.innerHTML = `
+                    <h3>${current.title}</h3>
+                    <p>${current.text}</p>
+                    <div class="tour-actions">
+                        <button id="tourSkipBtn">Skip</button>
+                        <button id="tourNextBtn">${step === steps.length - 1 ? 'Finish' : 'Next'}</button>
+                    </div>
+                `;
+
+                card.querySelector('#tourSkipBtn').addEventListener('click', finishTour);
+                card.querySelector('#tourNextBtn').addEventListener('click', () => {
+                    step += 1;
+                    showStep();
+                });
+            };
+
+            showStep();
+        }
+
+        window.addEventListener('load', () => {
+            setTimeout(startHomeTour, 800);
         });
     </script>
 

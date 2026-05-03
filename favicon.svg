@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="R.AMOS favicon">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#101624"/>
+      <stop offset="100%" stop-color="#1e2b45"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7a7a"/>
+      <stop offset="100%" stop-color="#ff4d6d"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bgGrad)"/>
+  <path d="M16 48V16h14.6c7.3 0 12.4 4.2 12.4 10.7 0 4.8-2.7 8.1-7.1 9.6L44 48h-8.8l-7.1-10.3H24V48h-8zm8-17h5.5c3.5 0 5.5-1.6 5.5-4.2 0-2.7-2-4.2-5.5-4.2H24v8.4z" fill="url(#accentGrad)"/>
+  <circle cx="50" cy="50" r="5.2" fill="#ffb703"/>
+</svg>

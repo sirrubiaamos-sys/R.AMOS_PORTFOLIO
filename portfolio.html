@@ -3,9 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio - Video Sharing Platform</title>
+    <meta name="description" content="Browse R.AMOS Productions portfolio - videography, photography, audio engineering, and creative projects. View our latest work.">
+    <meta name="keywords" content="portfolio, videography, photography, audio engineering, video production, creative work">
+    <meta name="author" content="R.AMOS Productions">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="canonical" content="https://ramos-productions.com/portfolio.html">
+    <meta property="og:title" content="Portfolio - R.AMOS Productions">
+    <meta property="og:description" content="Explore our creative portfolio of videography, photography, and audio engineering projects.">
+    <meta property="og:type" content="website">
+    <title>Portfolio - R.AMOS Productions | Videography & Photography</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="portfolio.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Portfolio",
+        "description": "Creative portfolio showcasing videography, photography, and audio engineering work"
+    }
+    </script>
 </head>
 <body>
     <!-- Navigation Bar -->
@@ -23,6 +42,9 @@
         </div>
         <div class="nav-right">
             <button class="upload-btn" onclick="openUploadModal()"><i class="fas fa-video"></i> Upload</button>
+            <button class="upload-btn" onclick="openPortfolioUploadModal()"><i class="fas fa-plus"></i> Add Item</button>
+            <button class="upload-btn" onclick="clearPortfolioItems()" title="Clear all items"><i class="fas fa-trash"></i> Clear</button>
+            <button class="upload-btn" onclick="resetPortfolioDefaults()" title="Reset to defaults"><i class="fas fa-redo"></i> Reset</button>
             <button class="live-btn" onclick="openLiveModal()"><i class="fas fa-circle"></i> Go Live</button>
             <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode"><i class="fas fa-moon"></i></button>
             <button class="user-btn" onclick="openProfileModal()"><i class="fas fa-user-circle"></i></button>
@@ -45,68 +67,64 @@
         <!-- Featured Section -->
         <section class="featured">
             <div class="featured-card">
-                <img src="https://via.placeholder.com/1200x400" alt="Featured">
+                <img src="https://i.pinimg.com/originals/5f/5f/5f/5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f.jpg" alt="Featured Portfolio">
                 <div class="featured-info">
                     <h2>Welcome to My Portfolio</h2>
-                    <p>Share your videos, photos and connect with the world</p>
+                    <p>Professional creative services - Videography, Photography, Audio Engineering & More</p>
                 </div>
             </div>
         </section>
 
-        <!-- Video Grid -->
-        <section class="content-grid">
-            <!-- Video Card 1 -->
-            <div class="content-card" onclick="openVideoModal('dQw4w9WgXcQ', 'Amazing Project Showcase', '1.2M views • 2 weeks ago')">
-                <div class="thumbnail">
-                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/dQw4w9WgXcQ?controls=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    <span class="duration">3:32</span>
-                </div>
-                <div class="card-info">
-                    <h3>Amazing Project Showcase</h3>
-                    <p class="channel">R.AMOS Productions</p>
-                    <p class="stats">1.2M views • 2 weeks ago</p>
-                </div>
-            </div>
-
-            <!-- Video Card 2 -->
-            <div class="content-card" onclick="openVideoModal('jNQXAC9IVRw', 'Creative Content Creation', '856K views • 1 month ago')">
-                <div class="thumbnail">
-                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/jNQXAC9IVRw?controls=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    <span class="duration">18:20</span>
-                </div>
-                <div class="card-info">
-                    <h3>Creative Content Creation</h3>
-                    <p class="channel">R.AMOS Productions</p>
-                    <p class="stats">856K views • 1 month ago</p>
-                </div>
-            </div>
-
-            <!-- Video Card 3 -->
-            <div class="content-card" onclick="openVideoModal('9bZkp7q19f0', 'Professional Portfolio Tips', '542K views • 3 weeks ago')">
-                <div class="thumbnail">
-                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/9bZkp7q19f0?controls=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    <span class="duration">9:45</span>
-                </div>
-                <div class="card-info">
-                    <h3>Professional Portfolio Tips</h3>
-                    <p class="channel">R.AMOS Productions</p>
-                    <p class="stats">542K views • 3 weeks ago</p>
-                </div>
-            </div>
-
-            <!-- Video Card 4 -->
-            <div class="content-card" onclick="openVideoModal('ZonvMhT5c6Q', 'Behind the Scenes', '423K views • 1 month ago')">
-                <div class="thumbnail">
-                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/ZonvMhT5c6Q?controls=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    <span class="duration">12:50</span>
-                </div>
-                <div class="card-info">
-                    <h3>Behind the Scenes</h3>
-                    <p class="channel">R.AMOS Productions</p>
-                    <p class="stats">423K views • 1 month ago</p>
-                </div>
-            </div>
+        <!-- Dynamic portfolio items (rendered from localStorage) -->
+        <section class="content-grid" id="dynamicGrid">
+            <!-- Items added via the Add Item modal will appear here -->
         </section>
+
+        <!-- Search and Sort Bar -->
+        <div class="search-sort-bar">
+            <input type="text" id="searchInput" placeholder="Search by title..." class="search-input" onkeyup="filterBySearch()">
+            <select id="sortSelect" class="sort-select" onchange="sortPortfolioItems(this.value)">
+                <option value="date-desc">Newest First</option>
+                <option value="date-asc">Oldest First</option>
+                <option value="name-asc">A - Z</option>
+                <option value="name-desc">Z - A</option>
+                <option value="category">By Category</option>
+            </select>
+        </div>
+
+        <!-- Categories -->
+        <div class="category-bar">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button class="category-btn active" onclick="filterCategory('all')">All</button>
+                <button class="category-btn" onclick="filterCategory('videography')">Videography</button>
+                <button class="category-btn" onclick="filterCategory('photography')">Photography</button>
+                <button class="category-btn" onclick="filterCategory('audio')">Audio Engineering</button>
+                <button class="category-btn" onclick="filterCategory('music')">Music</button>
+                <button class="category-btn" onclick="filterCategory('document')">Documents</button>
+                <button class="category-btn" onclick="filterCategory('other')">Other</button>
+            </div>
+            <div style="margin-left:auto;">
+                <select id="categorySelect" class="category-select" onchange="filterCategory(this.value)">
+                    <option value="all">All</option>
+                    <option value="videography">Videography</option>
+                    <option value="photography">Photography</option>
+                    <option value="audio">Audio Engineering</option>
+                    <option value="document">Document</option>
+                    <option value="presentations">Presentations</option>
+                    <option value="design">Design</option>
+                    <option value="graphics">Graphics</option>
+                    <option value="3dmodels">3D Models</option>
+                    <option value="music">Music</option>
+                    <option value="casestudies">Case Studies</option>
+                    <option value="other">Other</option>
+                    <option value="rar">RAR</option>
+                    <option value="zip">ZIP</option>
+                    <option value="software">Software</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Cards are rendered dynamically from script.js for consistent sorting and categories -->
     </main>
 
     <!-- Video Player Modal -->
@@ -256,6 +274,46 @@
         </div>
     </div>
 
+    <!-- Portfolio Add Item Modal -->
+    <div class="modal" id="portfolioUploadModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closePortfolioUploadModal()">&times;</button>
+            <h2 style="color: #ff6b6b; margin-bottom: 10px;">Add Portfolio Item</h2>
+            <p style="color:#b0b0b0; margin-bottom:12px">Drag & drop a file, select from disk, or paste a public link (Google Drive, Dropbox, etc.).</p>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:280px;">
+                    <div id="dropZone" style="padding:20px; border:2px dashed #333; border-radius:12px; background:#121428; color:#b0b0b0; text-align:center;">Drop files here</div>
+                    <input type="file" id="portfolioFileInput" style="margin-top:10px; width:100%;" />
+                </div>
+                <div style="flex:1; min-width:220px;">
+                    <label style="color:#b0b0b0;">Or paste a public URL</label>
+                    <input type="text" id="portfolioUrlInput" placeholder="https://drive.google.com/..." style="padding:10px; background:#2a2f4a; color:#e0e0e0; border-radius:8px; width:100%; border:1px solid #333; margin-bottom:10px;" />
+                    <label style="color:#b0b0b0;">Title</label>
+                    <input type="text" id="portfolioTitleInput" placeholder="Item title" style="padding:10px; background:#2a2f4a; color:#e0e0e0; border-radius:8px; width:100%; border:1px solid #333; margin-bottom:10px;" />
+                    <label style="color:#b0b0b0;">Category</label>
+                    <select id="portfolioCategory" style="padding:10px; background:#2a2f4a; color:#e0e0e0; border-radius:8px; width:100%; border:1px solid #333;">
+                        <option value="videography">Videography</option>
+                        <option value="photography">Photography</option>
+                        <option value="audio">Audio Engineering</option>
+                        <option value="music">Music</option>
+                        <option value="document">Document</option>
+                        <option value="presentations">Presentations</option>
+                        <option value="design">Design</option>
+                        <option value="graphics">Graphics</option>
+                        <option value="3dmodels">3D Models</option>
+                        <option value="music">Music</option>
+                        <option value="casestudies">Case Studies</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top:14px; display:flex; gap:10px;">
+                <button onclick="handlePortfolioUpload()" style="padding:10px 18px; background:#ff6b6b; color:white; border:none; border-radius:8px;">Add Item</button>
+                <button onclick="closePortfolioUploadModal()" style="padding:10px 18px; background:#333; color:#e0e0e0; border:none; border-radius:8px;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Live Modal -->
     <div class="modal" id="liveModal">
         <div class="modal-content">
@@ -370,6 +428,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="script.js"></script>
     <script>
         // Support Modal Functions

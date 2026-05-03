@@ -82,6 +82,12 @@ body {
 }
 
 /* Dropdown Menu */
+.portfolio-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
 .portfolio-link {
     position: relative;
 }
@@ -99,7 +105,8 @@ body {
 .dropdown-menu {
     position: absolute;
     top: 100%;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
     background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
     border: 2px solid #00abf0;
     border-top: none;
